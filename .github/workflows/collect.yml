@@ -1,0 +1,61 @@
+name: Collect Press Releases
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # Daily at 5am UTC
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Which phase to run'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - metadata-only
+          - text-only
+          - retry-failures
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Phase 1 - Collect metadata
+        if: ${{ github.event.inputs.phase != 'text-only' && github.event.inputs.phase != 'retry-failures' }}
+        run: cd scripts && uv run python collect_metadata.py
+        continue-on-error: true
+
+      - name: Phase 2 - Fetch full text
+        if: ${{ github.event.inputs.phase != 'metadata-only' && github.event.inputs.phase != 'retry-failures' }}
+        run: cd scripts && uv run python collect_text.py
+        continue-on-error: true
+
+      - name: Retry failures
+        if: ${{ github.event.inputs.phase == 'retry-failures' }}
+        run: cd scripts && uv run python collect_text.py --retry-failures
+        continue-on-error: true
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            DATE=$(date +%Y-%m-%d)
+            NEW=$(git diff --staged --numstat data/ | awk '{s+=$1} END {print s+0}')
+            git commit -m "Update press releases ${DATE} (+${NEW} lines)"
+            git push
+          fi
