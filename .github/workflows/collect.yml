@@ -31,6 +31,9 @@ jobs:
         with:
           version: "latest"
 
+      - name: Fetch legislators file
+        run: curl -fsSL https://raw.githubusercontent.com/dwillis/python-statement/main/legislators_with_scrapers.json -o legislators_with_scrapers.json
+
       - name: Install dependencies
         run: uv sync
 
