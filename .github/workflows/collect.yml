@@ -16,6 +16,9 @@ on:
           - text-only
           - retry-failures
 
+permissions:
+  contents: write
+
 jobs:
   collect:
     runs-on: ubuntu-latest
