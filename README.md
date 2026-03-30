@@ -74,6 +74,26 @@ uv run python scripts/backfill.py --max-pages 10     # Limit pagination depth
 uv run python scripts/backfill.py --resume            # Skip scrapers already in data
 ```
 
+## Contributing
+
+There are two main ways to contribute:
+
+### Scraper issues (python-statement)
+
+If you notice a member's press releases are missing, returning bad dates, or producing broken URLs, file an issue at [python-statement](https://github.com/dwillis/python-statement/issues). Helpful details include:
+
+- The member's name and website URL
+- What's wrong (missing entirely, wrong dates, broken links, etc.)
+- A sample URL showing the expected content
+
+### Data quality (congress-press)
+
+For issues with the collected data itself — duplicates, bad text extraction, misattributed records, or suggestions for the collection scripts — file an issue or open a pull request on [this repo](https://github.com/dwillis/congress-press/issues). Examples:
+
+- Records with garbled or missing text that should be extractable
+- Metadata errors (wrong member, wrong date, etc.)
+- Improvements to the text extraction or date backfill logic
+
 ## Dependencies
 
 - [python-statement](https://github.com/dwillis/python-statement) - Congressional press release scrapers
