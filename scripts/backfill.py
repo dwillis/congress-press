@@ -22,6 +22,7 @@ from python_statement.config import SCRAPER_CONFIG
 
 from utils import (
     DATA_DIR,
+    is_future_date,
     load_jsonl,
     load_member_map,
     now_iso,
@@ -161,6 +162,9 @@ def main():
 
                 date_val = item.get("date")
                 date_str = str(date_val) if date_val else None
+
+                if is_future_date(date_str):
+                    continue
 
                 # Determine which month file this belongs in
                 if date_val and isinstance(date_val, date):

@@ -1,7 +1,21 @@
+# Python
 __pycache__/
-*.pyc
-.venv/
+*.py[cod]
+*$py.class
 *.egg-info/
+*.egg
 dist/
 build/
+.eggs/
+*.whl
 .uv/
+.venv/
+
+# Mac
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

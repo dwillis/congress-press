@@ -98,6 +98,25 @@ def _build_member_map(path):
     return member_map
 
 
+def month_path(date_str):
+    """Return the JSONL path for a YYYY-MM-DD date string: data/YYYY/YYYY-MM.jsonl."""
+    year = date_str[:4]
+    month_key = date_str[:7]
+    year_dir = DATA_DIR / year
+    year_dir.mkdir(parents=True, exist_ok=True)
+    return year_dir / f"{month_key}.jsonl"
+
+
+def is_future_date(date_str):
+    """Return True if date_str is in the future (after today)."""
+    if not date_str:
+        return False
+    try:
+        return date_str > str(date.today())
+    except (TypeError, ValueError):
+        return False
+
+
 def now_iso():
     """Return current UTC time as ISO string."""
     return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")

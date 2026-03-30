@@ -14,6 +14,7 @@ from python_statement.config import SCRAPER_CONFIG
 
 from utils import (
     current_month_path,
+    is_future_date,
     load_jsonl,
     load_member_map,
     now_iso,
@@ -66,6 +67,9 @@ def main():
 
                 date_val = item.get("date")
                 date_str = str(date_val) if date_val else None
+
+                if is_future_date(date_str):
+                    continue
 
                 if url in by_url:
                     # Existing record — check if title changed
