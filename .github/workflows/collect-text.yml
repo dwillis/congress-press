@@ -1,0 +1,42 @@
+name: Collect Text
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6am UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect-text:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Fetch text for current month
+        run: cd scripts && uv run python collect_text.py
+        continue-on-error: true
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            DATE=$(date +%Y-%m-%d)
+            NEW=$(git diff --staged --numstat data/ | awk '{s+=$1} END {print s+0}')
+            git commit -m "Update press releases ${DATE} (+${NEW} lines)"
+            git push
+          fi

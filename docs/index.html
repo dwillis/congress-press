@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Congress Press - Congressional Press Release Archive</title>
+  <style>
+    :root {
+      --navy: #1a2744;
+      --navy-light: #2a3d5e;
+      --gold: #c5a44e;
+      --gold-light: #d4ba73;
+      --bg: #fafafa;
+      --text: #2c2c2c;
+      --border: #ddd;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 2.5rem 1rem 2rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-family: "Libre Baskerville", "Georgia", serif;
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    header h1 span {
+      color: var(--gold);
+    }
+
+    header p {
+      font-size: 1.05rem;
+      opacity: 0.85;
+      max-width: 600px;
+      margin: 0 auto 1rem;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .header-links a {
+      color: var(--gold-light);
+      text-decoration: none;
+      font-size: 0.9rem;
+      border-bottom: 1px solid transparent;
+    }
+
+    .header-links a:hover {
+      border-bottom-color: var(--gold-light);
+    }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      padding: 1.2rem 1rem;
+      background: white;
+      border-bottom: 2px solid var(--gold);
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: "Libre Baskerville", "Georgia", serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #777;
+    }
+
+    main {
+      max-width: 760px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    h2 {
+      font-family: "Libre Baskerville", "Georgia", serif;
+      font-size: 1.4rem;
+      color: var(--navy);
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--gold);
+    }
+
+    details {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      background: white;
+    }
+
+    summary {
+      padding: 0.8rem 1rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    summary:hover {
+      background: #f5f5f5;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::before {
+      content: "\25B6";
+      font-size: 0.7rem;
+      margin-right: 0.7rem;
+      color: var(--gold);
+      transition: transform 0.2s;
+    }
+
+    details[open] > summary::before {
+      transform: rotate(90deg);
+    }
+
+    .year {
+      font-family: "Libre Baskerville", "Georgia", serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .year-meta {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    details > :not(summary) {
+      padding: 0 1rem 1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      padding: 0.5rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.45rem 0.5rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dl-link {
+      color: var(--navy);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 0.25rem 0.6rem;
+      border: 1px solid var(--navy);
+      border-radius: 3px;
+      transition: all 0.15s;
+    }
+
+    .dl-link:hover {
+      background: var(--navy);
+      color: white;
+    }
+
+    .dl-zip {
+      font-size: 0.95rem;
+      padding: 0.4rem 1rem;
+    }
+
+    .archive-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .meta {
+      font-size: 0.85rem;
+      color: #888;
+    }
+
+    .months-covered {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.8rem;
+      color: #999;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+
+    footer a {
+      color: var(--navy-light);
+    }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.8rem; }
+      .stats { gap: 1.5rem; }
+      .stat-value { font-size: 1.2rem; }
+      .archive-row { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>Congress <span>Press</span></h1>
+    <p>An archive of congressional press releases from 2001-2026, with daily updates.</p>
+    <div class="header-links">
+      <a href="https://github.com/dwillis/congress-press">GitHub Repository</a>
+      <a href="https://github.com/dwillis/python-statement">python-statement Scrapers</a>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">673,521</div>
+      <div class="stat-label">Press Releases</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">860+</div>
+      <div class="stat-label">Members of Congress</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">26</div>
+      <div class="stat-label">Years of Data</div>
+    </div>
+  </div>
+
+  <main>
+    <h2>Downloads</h2>
+
+      <details open>
+        <summary>
+          <span class="year">2026</span>
+          <span class="year-meta">10,665 records &middot; 4 months</span>
+        </summary>
+        <table>
+          <thead><tr><th>Month</th><th>Records</th><th>Size</th><th></th></tr></thead>
+          <tbody>
+          <tr><td>January</td><td class="num">3,857</td><td class="num">4.6 MB</td><td><a href="downloads/2026-01.jsonl" class="dl-link">Download JSONL</a></td></tr>
+          <tr><td>February</td><td class="num">3,708</td><td class="num">5.9 MB</td><td><a href="downloads/2026-02.jsonl" class="dl-link">Download JSONL</a></td></tr>
+          <tr><td>March</td><td class="num">3,098</td><td class="num">12.6 MB</td><td><a href="downloads/2026-03.jsonl" class="dl-link">Download JSONL</a></td></tr>
+          <tr><td>April</td><td class="num">2</td><td class="num">947 B</td><td><a href="downloads/2026-04.jsonl" class="dl-link">Download JSONL</a></td></tr>
+          </tbody>
+        </table>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2025</span>
+          <span class="year-meta">48,090 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2025.zip" class="dl-link dl-zip">Download 2025.zip</a>
+          <span class="meta">6.8 MB &middot; 48,090 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2024</span>
+          <span class="year-meta">32,743 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2024.zip" class="dl-link dl-zip">Download 2024.zip</a>
+          <span class="meta">3.6 MB &middot; 32,743 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2023</span>
+          <span class="year-meta">30,008 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2023.zip" class="dl-link dl-zip">Download 2023.zip</a>
+          <span class="meta">3.1 MB &middot; 30,008 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2022</span>
+          <span class="year-meta">19,658 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2022.zip" class="dl-link dl-zip">Download 2022.zip</a>
+          <span class="meta">2.1 MB &middot; 19,658 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2021</span>
+          <span class="year-meta">17,066 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2021.zip" class="dl-link dl-zip">Download 2021.zip</a>
+          <span class="meta">2.0 MB &middot; 17,066 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2020</span>
+          <span class="year-meta">82,539 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2020.zip" class="dl-link dl-zip">Download 2020.zip</a>
+          <span class="meta">81.0 MB &middot; 82,539 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2019</span>
+          <span class="year-meta">79,174 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2019.zip" class="dl-link dl-zip">Download 2019.zip</a>
+          <span class="meta">73.2 MB &middot; 79,174 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2018</span>
+          <span class="year-meta">70,211 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2018.zip" class="dl-link dl-zip">Download 2018.zip</a>
+          <span class="meta">64.2 MB &middot; 70,211 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2017</span>
+          <span class="year-meta">79,402 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2017.zip" class="dl-link dl-zip">Download 2017.zip</a>
+          <span class="meta">70.9 MB &middot; 79,402 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2016</span>
+          <span class="year-meta">42,686 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2016.zip" class="dl-link dl-zip">Download 2016.zip</a>
+          <span class="meta">38.5 MB &middot; 42,686 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2015</span>
+          <span class="year-meta">64,228 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2015.zip" class="dl-link dl-zip">Download 2015.zip</a>
+          <span class="meta">57.8 MB &middot; 64,228 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2014</span>
+          <span class="year-meta">56,459 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2014.zip" class="dl-link dl-zip">Download 2014.zip</a>
+          <span class="meta">51.7 MB &middot; 56,459 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2013</span>
+          <span class="year-meta">38,271 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2013.zip" class="dl-link dl-zip">Download 2013.zip</a>
+          <span class="meta">34.7 MB &middot; 38,271 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2012</span>
+          <span class="year-meta">389 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2012.zip" class="dl-link dl-zip">Download 2012.zip</a>
+          <span class="meta">128.7 KB &middot; 389 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2011</span>
+          <span class="year-meta">390 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2011.zip" class="dl-link dl-zip">Download 2011.zip</a>
+          <span class="meta">180.3 KB &middot; 390 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2010</span>
+          <span class="year-meta">229 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2010.zip" class="dl-link dl-zip">Download 2010.zip</a>
+          <span class="meta">126.1 KB &middot; 229 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2009</span>
+          <span class="year-meta">380 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2009.zip" class="dl-link dl-zip">Download 2009.zip</a>
+          <span class="meta">164.0 KB &middot; 380 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2008</span>
+          <span class="year-meta">132 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2008.zip" class="dl-link dl-zip">Download 2008.zip</a>
+          <span class="meta">110.8 KB &middot; 132 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2007</span>
+          <span class="year-meta">141 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2007.zip" class="dl-link dl-zip">Download 2007.zip</a>
+          <span class="meta">134.8 KB &middot; 141 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2006</span>
+          <span class="year-meta">135 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2006.zip" class="dl-link dl-zip">Download 2006.zip</a>
+          <span class="meta">131.9 KB &middot; 135 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2005</span>
+          <span class="year-meta">142 records &middot; 11 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2005.zip" class="dl-link dl-zip">Download 2005.zip</a>
+          <span class="meta">133.4 KB &middot; 142 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2004</span>
+          <span class="year-meta">139 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2004.zip" class="dl-link dl-zip">Download 2004.zip</a>
+          <span class="meta">108.8 KB &middot; 139 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2003</span>
+          <span class="year-meta">150 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2003.zip" class="dl-link dl-zip">Download 2003.zip</a>
+          <span class="meta">116.3 KB &middot; 150 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2002</span>
+          <span class="year-meta">41 records &middot; 9 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2002.zip" class="dl-link dl-zip">Download 2002.zip</a>
+          <span class="meta">38.3 KB &middot; 41 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, December</p>
+      </details>
+      <details>
+        <summary>
+          <span class="year">2001</span>
+          <span class="year-meta">53 records &middot; 12 months</span>
+        </summary>
+        <div class="archive-row">
+          <a href="downloads/2001.zip" class="dl-link dl-zip">Download 2001.zip</a>
+          <span class="meta">61.8 KB &middot; 53 records</span>
+        </div>
+        <p class="months-covered">January, February, March, April, May, June, July, August, September, October, November, December</p>
+      </details>
+
+  </main>
+
+  <footer>
+    Created by <a href="mailto:dpwillis@umd.edu">Derek Willis</a>.
+    Released under the <a href="https://github.com/dwillis/congress-press/blob/main/LICENSE">MIT License</a>.
+    <a href="https://github.com/dwillis/congress-press#contributing">How to contribute</a>.
+  </footer>
+</body>
+</html>

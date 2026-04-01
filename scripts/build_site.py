@@ -439,6 +439,7 @@ def generate_html(years):
   </main>
 
   <footer>
+    Created by <a href="mailto:dpwillis@umd.edu">Derek Willis</a>.
     Released under the <a href="https://github.com/dwillis/congress-press/blob/main/LICENSE">MIT License</a>.
     <a href="https://github.com/dwillis/congress-press#contributing">How to contribute</a>.
   </footer>
