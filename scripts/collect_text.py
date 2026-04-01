@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """Phase 2: Fetch full text for press releases that need it.
 
-Reads the current month's JSONL file, finds records with null text or updated
-titles, fetches article text via newspaper4k, and writes back. Optionally
-backfills dates from article metadata when the scraper didn't provide one.
+Reads JSONL files, finds records with null text, fetches article text via
+newspaper4k, and writes back. Optionally backfills dates from article metadata
+when the scraper didn't provide one.
+
+Usage:
+    uv run python scripts/collect_text.py                    # Current month only
+    uv run python scripts/collect_text.py --all-files        # All files with null text
+    uv run python scripts/collect_text.py --file data/2023/2023-06.jsonl
+    uv run python scripts/collect_text.py --retry-failures   # Re-attempt null-text records
 """
 
 import argparse
@@ -12,8 +18,10 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
+from pathlib import Path
 
 from utils import (
+    DATA_DIR,
     current_month_path,
     is_future_date,
     load_jsonl,
@@ -144,51 +152,28 @@ def fetch_article(url):
 
 def needs_text(record):
     """Check if a record needs text extraction."""
-    if record.get("text") is None:
-        return True
-    # Title was updated (text set to null by phase 1)
-    if record.get("updated_at") != record.get("collected_at") and record.get("text") is None:
-        return True
-    return False
+    return record.get("text") is None
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Fetch full text for press releases")
-    parser.add_argument(
-        "--retry-failures",
-        action="store_true",
-        help="Re-attempt all records with null text (including prior failures)",
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=0,
-        help="Limit number of articles to fetch (0 = no limit)",
-    )
-    args = parser.parse_args()
+def process_file(path, retry_failures=False, limit=0):
+    """Process a single JSONL file: fetch text for records that need it.
 
-    path = current_month_path()
+    Returns (fetched_count, failed_count, date_backfill_count, relocated_count, remaining_null).
+    """
+    path = Path(path)
     records = load_jsonl(path)
 
     if not records:
-        print("No records found. Run collect_metadata.py first.")
-        sys.exit(0)
+        return 0, 0, 0, 0, 0
 
     # Find records needing text
     to_fetch = [r for r in records if needs_text(r)]
 
-    if args.retry_failures:
-        # Include all null-text records, even if collected_at == updated_at
-        to_fetch = [r for r in records if r.get("text") is None]
-
-    if args.limit > 0:
-        to_fetch = to_fetch[: args.limit]
-
-    print(f"Records needing text: {len(to_fetch)} of {len(records)} total")
-
     if not to_fetch:
-        print("Nothing to fetch.")
-        sys.exit(0)
+        return 0, 0, 0, 0, 0
+
+    if limit > 0:
+        to_fetch = to_fetch[:limit]
 
     fetched_count = 0
     failed_count = 0
@@ -231,7 +216,6 @@ def main():
                     record["date_source"] = "page_html"
                     date_backfill_count += 1
                 elif is_future_date(record.get("date")):
-                    # Replace a bad future date with a good one
                     record["date"] = pub_date
                     record["date_source"] = "page_html"
                     date_backfill_count += 1
@@ -264,15 +248,97 @@ def main():
             relocated_count += 1
         save_jsonl(target_path, list(by_url.values()))
 
-    print(f"\nResults saved to {path}")
-    print(f"  Text fetched: {fetched_count}")
-    print(f"  Fetch failures: {failed_count}")
-    print(f"  Dates backfilled: {date_backfill_count}")
-    if relocated_count:
-        print(f"  Records relocated to correct month: {relocated_count} -> {len(relocate)} files")
-
     remaining_null = sum(1 for r in stay if r.get("text") is None)
-    print(f"  Records still without text: {remaining_null}")
+    return fetched_count, failed_count, date_backfill_count, relocated_count, remaining_null
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Fetch full text for press releases")
+    parser.add_argument(
+        "--retry-failures",
+        action="store_true",
+        help="Re-attempt all records with null text (including prior failures)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Limit number of articles to fetch per file (0 = no limit)",
+    )
+    parser.add_argument(
+        "--file",
+        type=str,
+        help="Process a specific JSONL file",
+    )
+    parser.add_argument(
+        "--all-files",
+        action="store_true",
+        help="Process all JSONL files that have records needing text",
+    )
+    parser.add_argument(
+        "--year",
+        type=str,
+        help="Process all files for a specific year (e.g., 2023)",
+    )
+    args = parser.parse_args()
+
+    # Determine which files to process
+    if args.file:
+        files = [Path(args.file)]
+    elif args.year:
+        year_dir = DATA_DIR / args.year
+        if not year_dir.exists():
+            print(f"No data directory for {args.year}")
+            sys.exit(1)
+        files = sorted(year_dir.glob("*.jsonl"))
+    elif args.all_files:
+        files = sorted(DATA_DIR.rglob("*.jsonl"))
+    else:
+        files = [current_month_path()]
+
+    # Filter to files that actually have records needing text
+    files_to_process = []
+    for f in files:
+        records = load_jsonl(f)
+        null_count = sum(1 for r in records if r.get("text") is None)
+        if null_count > 0:
+            files_to_process.append((f, null_count, len(records)))
+
+    if not files_to_process:
+        print("No records need text extraction.")
+        sys.exit(0)
+
+    total_needing = sum(n for _, n, _ in files_to_process)
+    print(f"Files to process: {len(files_to_process)}")
+    print(f"Total records needing text: {total_needing:,}")
+    print()
+
+    grand_fetched = 0
+    grand_failed = 0
+    grand_dates = 0
+    grand_relocated = 0
+
+    for i, (path, null_count, total_count) in enumerate(files_to_process, 1):
+        print(f"[{i}/{len(files_to_process)}] {path.name}: {null_count:,} to fetch of {total_count:,}")
+        fetched, failed, dates, relocated, remaining = process_file(
+            path, retry_failures=args.retry_failures, limit=args.limit,
+        )
+        print(f"  fetched={fetched}, failed={failed}, dates_backfilled={dates}", end="")
+        if relocated:
+            print(f", relocated={relocated}", end="")
+        print(f", remaining={remaining}")
+
+        grand_fetched += fetched
+        grand_failed += failed
+        grand_dates += dates
+        grand_relocated += relocated
+
+    print(f"\nDone.")
+    print(f"  Total text fetched: {grand_fetched:,}")
+    print(f"  Total fetch failures: {grand_failed:,}")
+    print(f"  Total dates backfilled: {grand_dates:,}")
+    if grand_relocated:
+        print(f"  Total records relocated: {grand_relocated:,}")
 
 
 if __name__ == "__main__":

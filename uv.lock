@@ -166,12 +166,14 @@ source = { editable = "." }
 dependencies = [
     { name = "newspaper4k" },
     { name = "python-statement" },
+    { name = "requests" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "newspaper4k", specifier = ">=0.9.3" },
     { name = "python-statement", git = "https://github.com/dwillis/python-statement.git" },
+    { name = "requests", specifier = ">=2.28.0" },
 ]
 
 [[package]]
