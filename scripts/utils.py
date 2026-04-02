@@ -79,22 +79,52 @@ def load_member_map():
 
 
 def _build_member_map(path):
-    """Build scraper_name -> member info dict from legislators JSON."""
+    """Build scraper_name -> member info dict from legislators JSON.
+
+    The legislators file stores a template method name in scraper_method, not the
+    scraper's key name in SCRAPER_CONFIG. We match by URL/domain instead to build
+    a reliable scraper_name -> member mapping.
+    """
     with open(path) as f:
         legislators = json.load(f)
 
-    member_map = {}
+    # Build domain -> legislator lookup (strip scheme and trailing slash)
+    domain_to_leg = {}
     for leg in legislators:
-        scraper = leg.get("scraper_method")
-        if not scraper:
+        url = leg.get("url", "")
+        if url:
+            domain = url.replace("https://", "").replace("http://", "").rstrip("/").lower()
+            domain_to_leg[domain] = leg
+
+    # Cross-reference SCRAPER_CONFIG scraper names with legislator URLs
+    try:
+        from python_statement.config import SCRAPER_CONFIG
+    except ImportError:
+        SCRAPER_CONFIG = {}
+
+    member_map = {}
+    for scraper_name, config in SCRAPER_CONFIG.items():
+        url_base = config.get("url_base", "") if isinstance(config, dict) else ""
+        if not url_base:
             continue
-        member_map[scraper] = {
-            "bioguide_id": leg.get("bioguide"),
-            "name": leg.get("official_full"),
-            "party": leg.get("party"),
-            "state": leg.get("state"),
-            "chamber": "Senate" if leg.get("type") == "sen" else "House",
-        }
+        domain = url_base.replace("https://", "").replace("http://", "").split("/")[0].lower()
+        leg = domain_to_leg.get(domain)
+        if not leg:
+            # Try with www. prefix stripped
+            domain_no_www = domain.removeprefix("www.")
+            leg = next(
+                (v for k, v in domain_to_leg.items() if k.removeprefix("www.") == domain_no_www),
+                None,
+            )
+        if leg:
+            member_map[scraper_name] = {
+                "bioguide_id": leg.get("bioguide"),
+                "name": leg.get("official_full"),
+                "party": leg.get("party"),
+                "state": leg.get("state"),
+                "chamber": "Senate" if leg.get("type") == "sen" else "House",
+            }
+
     return member_map
 
 
