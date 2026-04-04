@@ -48,6 +48,25 @@ def records_by_url(records):
     return {r["url"]: r for r in records}
 
 
+def load_all_urls():
+    """Load the set of all URLs across every monthly JSONL file.
+
+    Used by collect_metadata.py to deduplicate against the entire dataset,
+    not just the current month.
+    """
+    urls = set()
+    for jsonl_path in DATA_DIR.rglob("*.jsonl"):
+        with open(jsonl_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    record = json.loads(line)
+                    url = record.get("url")
+                    if url:
+                        urls.add(url)
+    return urls
+
+
 def load_member_map():
     """Load scraper_name -> member info mapping.
 

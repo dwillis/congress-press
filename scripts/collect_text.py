@@ -244,6 +244,13 @@ def process_file(path, retry_failures=False, limit=0):
         existing = load_jsonl(target_path)
         by_url = records_by_url(existing)
         for r in moved_records:
+            if r["url"] in by_url:
+                # Preserve collected_at from the original record and only
+                # update if the text has actually changed.
+                original = by_url[r["url"]]
+                r["collected_at"] = original.get("collected_at", r["collected_at"])
+                if r.get("text") == original.get("text"):
+                    continue  # nothing changed — skip
             by_url[r["url"]] = r
             relocated_count += 1
         save_jsonl(target_path, list(by_url.values()))

@@ -15,6 +15,7 @@ from python_statement.config import SCRAPER_CONFIG
 from utils import (
     current_month_path,
     is_future_date,
+    load_all_urls,
     load_jsonl,
     load_member_map,
     now_iso,
@@ -39,6 +40,7 @@ def main():
     path = current_month_path()
     existing = load_jsonl(path)
     by_url = records_by_url(existing)
+    all_urls = load_all_urls()  # cross-file dedup
 
     scraper_names = list(SCRAPER_CONFIG.keys())
     print(f"Running {len(scraper_names)} scrapers with {WORKERS} workers...")
@@ -72,13 +74,16 @@ def main():
                     continue
 
                 if url in by_url:
-                    # Existing record — check if title changed
+                    # Existing record in current month — check if title changed
                     record = by_url[url]
                     if record["title"] != item.get("title", ""):
                         record["title"] = item.get("title", "")
                         record["updated_at"] = timestamp
                         record["text"] = None  # trigger re-extraction
                         updated_count += 1
+                elif url in all_urls:
+                    # Exists in a different month's file — skip
+                    continue
                 else:
                     # New record
                     record = {
@@ -95,6 +100,7 @@ def main():
                         "updated_at": timestamp,
                     }
                     by_url[url] = record
+                    all_urls.add(url)
                     new_count += 1
 
     all_records = list(by_url.values())
