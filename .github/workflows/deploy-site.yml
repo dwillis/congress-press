@@ -24,15 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: astral-sh/setup-uv@v4
+      - uses: actions/setup-python@v5
         with:
-          version: "latest"
-
-      - name: Install dependencies
-        run: uv sync
+          python-version: '3.12'
 
       - name: Build site
-        run: cd scripts && uv run python build_site.py
+        run: python scripts/build_site.py
 
       - uses: actions/configure-pages@v5
 
