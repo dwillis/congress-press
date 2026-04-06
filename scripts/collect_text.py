@@ -155,7 +155,7 @@ def needs_text(record):
     return record.get("text") is None
 
 
-def process_file(path, retry_failures=False, limit=0):
+def process_file(path, retry_failures=False, limit=0, member_id=None):
     """Process a single JSONL file: fetch text for records that need it.
 
     Returns (fetched_count, failed_count, date_backfill_count, relocated_count, remaining_null).
@@ -168,6 +168,9 @@ def process_file(path, retry_failures=False, limit=0):
 
     # Find records needing text
     to_fetch = [r for r in records if needs_text(r)]
+
+    if member_id:
+        to_fetch = [r for r in to_fetch if (r.get("member") or {}).get("bioguide_id") == member_id]
 
     if not to_fetch:
         return 0, 0, 0, 0, 0
@@ -283,6 +286,11 @@ def main():
         help="Process all JSONL files that have records needing text",
     )
     parser.add_argument(
+        "--member-id",
+        type=str,
+        help="Only fetch text for a specific member (bioguide ID, e.g. H001047)",
+    )
+    parser.add_argument(
         "--year",
         type=str,
         help="Process all files for a specific year (e.g., 2023)",
@@ -307,6 +315,8 @@ def main():
     files_to_process = []
     for f in files:
         records = load_jsonl(f)
+        if args.member_id:
+            records = [r for r in records if (r.get("member") or {}).get("bioguide_id") == args.member_id]
         null_count = sum(1 for r in records if r.get("text") is None)
         if null_count > 0:
             files_to_process.append((f, null_count, len(records)))
@@ -329,6 +339,7 @@ def main():
         print(f"[{i}/{len(files_to_process)}] {path.name}: {null_count:,} to fetch of {total_count:,}")
         fetched, failed, dates, relocated, remaining = process_file(
             path, retry_failures=args.retry_failures, limit=args.limit,
+            member_id=args.member_id,
         )
         print(f"  fetched={fetched}, failed={failed}, dates_backfilled={dates}", end="")
         if relocated:
