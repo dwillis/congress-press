@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Congress Press</title>
+  <style>
+    :root {
+      --navy: #1a2744;
+      --navy-light: #2a3d5e;
+      --gold: #c5a44e;
+      --gold-light: #d4ba73;
+      --bg: #fafafa;
+      --text: #2c2c2c;
+      --border: #ddd;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    header {
+      background: var(--navy);
+      color: white;
+      padding: 2rem 1rem 1.5rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-family: "Libre Baskerville", "Georgia", serif;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      margin-bottom: 0.3rem;
+    }
+
+    header h1 span { color: var(--gold); }
+
+    header p {
+      font-size: 0.95rem;
+      opacity: 0.8;
+    }
+
+    .header-links {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      margin-top: 0.8rem;
+    }
+
+    .header-links a {
+      color: var(--gold-light);
+      text-decoration: none;
+      font-size: 0.9rem;
+      border-bottom: 1px solid transparent;
+    }
+
+    .header-links a:hover { border-bottom-color: var(--gold-light); }
+
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      padding: 1rem;
+      background: white;
+      border-bottom: 2px solid var(--gold);
+      flex-wrap: wrap;
+    }
+
+    .stat { text-align: center; }
+
+    .stat-value {
+      font-family: "Libre Baskerville", "Georgia", serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #777;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    h2 {
+      font-family: "Libre Baskerville", "Georgia", serif;
+      font-size: 1.3rem;
+      color: var(--navy);
+      margin: 2rem 0 0.8rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--gold);
+    }
+
+    h2:first-child { margin-top: 0; }
+
+    h3 {
+      font-size: 0.95rem;
+      color: var(--navy-light);
+      margin: 1.5rem 0 0.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      padding: 0.5rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      background: #f9f9f9;
+    }
+
+    td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    .num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .year-cell {
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .bar-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .bar-bg {
+      flex: 1;
+      height: 14px;
+      background: #eee;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    .bar-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      min-width: 3.5em;
+      text-align: right;
+    }
+
+    .summary-line {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 0.5rem 0 1rem;
+    }
+
+    .side-by-side {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .side-by-side > div {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .chart-container {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-bottom: 1rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      font-size: 0.8rem;
+      color: #999;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+
+    footer a { color: var(--navy-light); }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.6rem; }
+      .stats { gap: 1.5rem; }
+      .side-by-side { flex-direction: column; }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>Congress <span>Press</span> Dashboard</h1>
+    <p>Data completeness and activity overview</p>
+    <div class="header-links">
+      <a href="index.html">Downloads</a>
+      <a href="https://github.com/dwillis/congress-press">GitHub</a>
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">674,214</div>
+      <div class="stat-label">Total Records</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">73.2%</div>
+      <div class="stat-label">Text Coverage</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">16</div>
+      <div class="stat-label">Missing Dates</div>
+    </div>
+  </div>
+
+  <main>
+    <h2>Data Completeness</h2>
+
+    <h3>Text Coverage by Year</h3>
+    <table>
+      <thead><tr>
+        <th>Year</th><th>Records</th><th>With Text</th><th>No Date</th><th>Text Coverage</th>
+      </tr></thead>
+      <tbody>
+<tr><td class="year-cell">2026</td><td class="num">11,083</td><td class="num">8,022</td><td class="num">16</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:72.4%;background:var(--gold)"></div></div><span class="bar-label" style="color:var(--gold)">72.4%</span></td></tr>
+<tr><td class="year-cell">2025</td><td class="num">48,114</td><td class="num">2,242</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:4.7%;background:#c0392b"></div></div><span class="bar-label" style="color:#c0392b">4.7%</span></td></tr>
+<tr><td class="year-cell">2024</td><td class="num">32,763</td><td class="num">427</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:1.3%;background:#c0392b"></div></div><span class="bar-label" style="color:#c0392b">1.3%</span></td></tr>
+<tr><td class="year-cell">2023</td><td class="num">30,079</td><td class="num">315</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:1.0%;background:#c0392b"></div></div><span class="bar-label" style="color:#c0392b">1.0%</span></td></tr>
+<tr><td class="year-cell">2022</td><td class="num">19,658</td><td class="num">352</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:1.8%;background:#c0392b"></div></div><span class="bar-label" style="color:#c0392b">1.8%</span></td></tr>
+<tr><td class="year-cell">2021</td><td class="num">17,195</td><td class="num">632</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:3.7%;background:#c0392b"></div></div><span class="bar-label" style="color:#c0392b">3.7%</span></td></tr>
+<tr><td class="year-cell">2020</td><td class="num">82,550</td><td class="num">71,802</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:87.0%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">87.0%</span></td></tr>
+<tr><td class="year-cell">2019</td><td class="num">79,194</td><td class="num">71,697</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:90.5%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">90.5%</span></td></tr>
+<tr><td class="year-cell">2018</td><td class="num">70,211</td><td class="num">64,851</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:92.4%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">92.4%</span></td></tr>
+<tr><td class="year-cell">2017</td><td class="num">79,402</td><td class="num">75,387</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:94.9%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">94.9%</span></td></tr>
+<tr><td class="year-cell">2016</td><td class="num">42,686</td><td class="num">40,772</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:95.5%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">95.5%</span></td></tr>
+<tr><td class="year-cell">2015</td><td class="num">64,228</td><td class="num">62,709</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:97.6%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">97.6%</span></td></tr>
+<tr><td class="year-cell">2014</td><td class="num">56,459</td><td class="num">55,508</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:98.3%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">98.3%</span></td></tr>
+<tr><td class="year-cell">2013</td><td class="num">38,271</td><td class="num">37,417</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:97.8%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">97.8%</span></td></tr>
+<tr><td class="year-cell">2012</td><td class="num">389</td><td class="num">120</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:30.8%;background:#c0392b"></div></div><span class="bar-label" style="color:#c0392b">30.8%</span></td></tr>
+<tr><td class="year-cell">2011</td><td class="num">390</td><td class="num">193</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:49.5%;background:#c0392b"></div></div><span class="bar-label" style="color:#c0392b">49.5%</span></td></tr>
+<tr><td class="year-cell">2010</td><td class="num">229</td><td class="num">141</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:61.6%;background:var(--gold)"></div></div><span class="bar-label" style="color:var(--gold)">61.6%</span></td></tr>
+<tr><td class="year-cell">2009</td><td class="num">380</td><td class="num">206</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:54.2%;background:var(--gold)"></div></div><span class="bar-label" style="color:var(--gold)">54.2%</span></td></tr>
+<tr><td class="year-cell">2008</td><td class="num">132</td><td class="num">130</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:98.5%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">98.5%</span></td></tr>
+<tr><td class="year-cell">2007</td><td class="num">141</td><td class="num">133</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:94.3%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">94.3%</span></td></tr>
+<tr><td class="year-cell">2006</td><td class="num">135</td><td class="num">132</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:97.8%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">97.8%</span></td></tr>
+<tr><td class="year-cell">2005</td><td class="num">142</td><td class="num">141</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:99.3%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">99.3%</span></td></tr>
+<tr><td class="year-cell">2004</td><td class="num">139</td><td class="num">138</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:99.3%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">99.3%</span></td></tr>
+<tr><td class="year-cell">2003</td><td class="num">150</td><td class="num">150</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:100.0%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">100.0%</span></td></tr>
+<tr><td class="year-cell">2002</td><td class="num">41</td><td class="num">41</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:100.0%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">100.0%</span></td></tr>
+<tr><td class="year-cell">2001</td><td class="num">53</td><td class="num">53</td><td class="num">0</td><td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:100.0%;background:#2d8a4e"></div></div><span class="bar-label" style="color:#2d8a4e">100.0%</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Lowest Text Coverage (2024–2026, min 10 releases)</h3>
+    <table>
+      <thead><tr>
+        <th>Member</th><th>Party</th><th>Chamber</th><th>Releases</th><th>Text %</th>
+      </tr></thead>
+      <tbody>
+<tr><td>James R. Baird</td><td>R-IN</td><td>House</td><td class="num">96</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Brittany Pettersen</td><td>D-CO</td><td>House</td><td class="num">173</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Earl L. "Buddy" Carter</td><td>R-GA</td><td>House</td><td class="num">286</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Salud O. Carbajal</td><td>D-CA</td><td>House</td><td class="num">264</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Russell Fry</td><td>R-SC</td><td>House</td><td class="num">60</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Gwen Moore</td><td>D-WI</td><td>House</td><td class="num">189</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Michael Lawler</td><td>R-NY</td><td>House</td><td class="num">448</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Neal P. Dunn</td><td>R-FL</td><td>House</td><td class="num">69</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Rick W. Allen</td><td>R-GA</td><td>House</td><td class="num">146</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Becca Balint</td><td>D-VT</td><td>House</td><td class="num">162</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Monica De La Cruz</td><td>R-TX</td><td>House</td><td class="num">165</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Suzan K. DelBene</td><td>D-WA</td><td>House</td><td class="num">207</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Scott Franklin</td><td>R-FL</td><td>House</td><td class="num">109</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Stacey E. Plaskett</td><td>D-VI</td><td>House</td><td class="num">159</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>David G. Valadao</td><td>R-CA</td><td>House</td><td class="num">189</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Donald S. Beyer, Jr.</td><td>D-VA</td><td>House</td><td class="num">307</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Josh Brecheen</td><td>R-OK</td><td>House</td><td class="num">99</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Veronica Escobar</td><td>D-TX</td><td>House</td><td class="num">198</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Ron Estes</td><td>R-KS</td><td>House</td><td class="num">172</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+<tr><td>Glenn Grothman</td><td>R-WI</td><td>House</td><td class="num">71</td><td class="num" style="color:#c0392b">0.0%</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Activity &amp; Volume</h2>
+
+    <h3>Monthly Releases (2024–2026)</h3>
+    <div class="chart-container">
+      <svg width="100%" viewBox="0 0 648 200" style="max-width:648px"><text x="36" y="183" text-anchor="end" font-size="9" fill="#aaa">0</text><line x1="38" y1="180" x2="648" y2="180" stroke="#eee" stroke-width="1"/><text x="36" y="141" text-anchor="end" font-size="9" fill="#aaa">1,213</text><line x1="38" y1="138" x2="648" y2="138" stroke="#eee" stroke-width="1"/><text x="36" y="98" text-anchor="end" font-size="9" fill="#aaa">2,427</text><line x1="38" y1="95" x2="648" y2="95" stroke="#eee" stroke-width="1"/><text x="36" y="56" text-anchor="end" font-size="9" fill="#aaa">3,640</text><line x1="38" y1="53" x2="648" y2="53" stroke="#eee" stroke-width="1"/><text x="36" y="13" text-anchor="end" font-size="9" fill="#aaa">4,854</text><line x1="38" y1="10" x2="648" y2="10" stroke="#eee" stroke-width="1"/><rect x="40" y="96" width="18" height="84" fill="var(--navy)" rx="2"><title>2024-01: 2,419</title></rect><rect x="61" y="86" width="18" height="94" fill="var(--navy)" rx="2"><title>2024-02: 2,705</title></rect><rect x="82" y="55" width="18" height="125" fill="var(--navy)" rx="2"><title>2024-03: 3,586</title></rect><rect x="103" y="74" width="18" height="106" fill="var(--navy)" rx="2"><title>2024-04: 3,036</title></rect><rect x="124" y="59" width="18" height="121" fill="var(--navy)" rx="2"><title>2024-05: 3,479</title></rect><rect x="145" y="79" width="18" height="101" fill="var(--navy)" rx="2"><title>2024-06: 2,905</title></rect><rect x="166" y="77" width="18" height="103" fill="var(--navy)" rx="2"><title>2024-07: 2,941</title></rect><rect x="187" y="117" width="18" height="63" fill="var(--navy)" rx="2"><title>2024-08: 1,812</title></rect><rect x="208" y="72" width="18" height="108" fill="var(--navy)" rx="2"><title>2024-09: 3,106</title></rect><rect x="229" y="98" width="18" height="82" fill="var(--navy)" rx="2"><title>2024-10: 2,354</title></rect><rect x="250" y="120" width="18" height="60" fill="var(--navy)" rx="2"><title>2024-11: 1,729</title></rect><rect x="271" y="86" width="18" height="94" fill="var(--navy)" rx="2"><title>2024-12: 2,691</title></rect><rect x="292" y="10" width="18" height="170" fill="var(--navy)" rx="2"><title>2025-01: 4,854</title></rect><rect x="313" y="26" width="18" height="154" fill="var(--navy)" rx="2"><title>2025-02: 4,424</title></rect><rect x="334" y="24" width="18" height="156" fill="var(--navy)" rx="2"><title>2025-03: 4,467</title></rect><rect x="355" y="34" width="18" height="146" fill="var(--navy)" rx="2"><title>2025-04: 4,180</title></rect><rect x="376" y="26" width="18" height="154" fill="var(--navy)" rx="2"><title>2025-05: 4,404</title></rect><rect x="397" y="36" width="18" height="144" fill="var(--navy)" rx="2"><title>2025-06: 4,127</title></rect><rect x="418" y="26" width="18" height="154" fill="var(--navy)" rx="2"><title>2025-07: 4,414</title></rect><rect x="439" y="98" width="18" height="82" fill="var(--navy)" rx="2"><title>2025-08: 2,366</title></rect><rect x="460" y="30" width="18" height="150" fill="var(--navy)" rx="2"><title>2025-09: 4,305</title></rect><rect x="481" y="57" width="18" height="123" fill="var(--navy)" rx="2"><title>2025-10: 3,531</title></rect><rect x="502" y="68" width="18" height="112" fill="var(--navy)" rx="2"><title>2025-11: 3,207</title></rect><rect x="523" y="46" width="18" height="134" fill="var(--navy)" rx="2"><title>2025-12: 3,835</title></rect><rect x="544" y="45" width="18" height="135" fill="var(--navy)" rx="2"><title>2026-01: 3,865</title></rect><rect x="565" y="49" width="18" height="131" fill="var(--navy)" rx="2"><title>2026-02: 3,762</title></rect><rect x="586" y="68" width="18" height="112" fill="var(--navy)" rx="2"><title>2026-03: 3,206</title></rect><rect x="607" y="172" width="18" height="8" fill="var(--navy)" rx="2"><title>2026-04: 250</title></rect><text x="49" y="196" text-anchor="middle" font-size="9" fill="#888">24-01</text><text x="112" y="196" text-anchor="middle" font-size="9" fill="#888">24-04</text><text x="175" y="196" text-anchor="middle" font-size="9" fill="#888">24-07</text><text x="238" y="196" text-anchor="middle" font-size="9" fill="#888">24-10</text><text x="301" y="196" text-anchor="middle" font-size="9" fill="#888">25-01</text><text x="364" y="196" text-anchor="middle" font-size="9" fill="#888">25-04</text><text x="427" y="196" text-anchor="middle" font-size="9" fill="#888">25-07</text><text x="490" y="196" text-anchor="middle" font-size="9" fill="#888">25-10</text><text x="553" y="196" text-anchor="middle" font-size="9" fill="#888">26-01</text><text x="616" y="196" text-anchor="middle" font-size="9" fill="#888">26-04</text></svg>
+    </div>
+
+    <div class="side-by-side">
+      <div>
+        <h3>By Party (2024–2026)</h3>
+        <table>
+          <thead><tr><th>Party</th><th>Releases</th></tr></thead>
+          <tbody><tr><td>Democrat</td><td class='num'>52,005</td></tr>
+<tr><td>Republican</td><td class='num'>39,356</td></tr>
+<tr><td>Independent</td><td class='num'>547</td></tr></tbody>
+        </table>
+      </div>
+      <div>
+        <h3>By Chamber (2024–2026)</h3>
+        <table>
+          <thead><tr><th>Chamber</th><th>Releases</th></tr></thead>
+          <tbody><tr><td>House</td><td class='num'>56,543</td></tr>
+<tr><td>Senate</td><td class='num'>35,365</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <h3>Most Active Members (2024–2026)</h3>
+    <table>
+      <thead><tr>
+        <th>Member</th><th>Party</th><th>Chamber</th><th>Releases</th><th>Text %</th>
+      </tr></thead>
+      <tbody>
+<tr><td>Chuck Grassley</td><td>R-IA</td><td>Senate</td><td class="num">1,005</td><td class="num">6.5%</td></tr>
+<tr><td>Elizabeth Warren</td><td>D-MA</td><td>Senate</td><td class="num">1,002</td><td class="num">7.1%</td></tr>
+<tr><td>Richard J. Durbin</td><td>D-IL</td><td>Senate</td><td class="num">999</td><td class="num">14.4%</td></tr>
+<tr><td>Tammy Duckworth</td><td>D-IL</td><td>Senate</td><td class="num">990</td><td class="num">8.1%</td></tr>
+<tr><td>Martin Heinrich</td><td>D-NM</td><td>Senate</td><td class="num">982</td><td class="num">7.7%</td></tr>
+<tr><td>Tim Kaine</td><td>D-VA</td><td>Senate</td><td class="num">927</td><td class="num">6.9%</td></tr>
+<tr><td>Ron Wyden</td><td>D-OR</td><td>Senate</td><td class="num">867</td><td class="num">6.0%</td></tr>
+<tr><td>Richard Blumenthal</td><td>D-CT</td><td>Senate</td><td class="num">860</td><td class="num">9.3%</td></tr>
+<tr><td>Mike Collins</td><td>R-GA</td><td>House</td><td class="num">790</td><td class="num">5.6%</td></tr>
+<tr><td>Shelley Moore Capito</td><td>R-WV</td><td>Senate</td><td class="num">769</td><td class="num">6.2%</td></tr>
+<tr><td>Jack Reed</td><td>D-RI</td><td>Senate</td><td class="num">755</td><td class="num">9.7%</td></tr>
+<tr><td>John Cornyn</td><td>R-TX</td><td>Senate</td><td class="num">750</td><td class="num">9.2%</td></tr>
+<tr><td>Chris Van Hollen</td><td>D-MD</td><td>Senate</td><td class="num">742</td><td class="num">7.4%</td></tr>
+<tr><td>Mark R. Warner</td><td>D-VA</td><td>Senate</td><td class="num">703</td><td class="num">8.1%</td></tr>
+<tr><td>Kevin Cramer</td><td>R-ND</td><td>Senate</td><td class="num">686</td><td class="num">5.1%</td></tr>
+<tr><td>Jeanne Shaheen</td><td>D-NH</td><td>Senate</td><td class="num">621</td><td class="num">6.8%</td></tr>
+<tr><td>Christopher Murphy</td><td>D-CT</td><td>Senate</td><td class="num">620</td><td class="num">6.1%</td></tr>
+<tr><td>Tammy Baldwin</td><td>D-WI</td><td>Senate</td><td class="num">610</td><td class="num">7.7%</td></tr>
+<tr><td>Bill Cassidy</td><td>R-LA</td><td>Senate</td><td class="num">606</td><td class="num">7.6%</td></tr>
+<tr><td>Mike Crapo</td><td>R-ID</td><td>Senate</td><td class="num">563</td><td class="num">5.9%</td></tr>
+<tr><td>Cory A. Booker</td><td>D-NJ</td><td>Senate</td><td class="num">562</td><td class="num">9.3%</td></tr>
+<tr><td>Gary C. Peters</td><td>D-MI</td><td>Senate</td><td class="num">555</td><td class="num">7.0%</td></tr>
+<tr><td>John Thune</td><td>R-SD</td><td>Senate</td><td class="num">545</td><td class="num">11.0%</td></tr>
+<tr><td>Angus S. King, Jr.</td><td>I-ME</td><td>Senate</td><td class="num">535</td><td class="num">6.9%</td></tr>
+<tr><td>John Hoeven</td><td>R-ND</td><td>Senate</td><td class="num">522</td><td class="num">5.7%</td></tr>
+      </tbody>
+    </table>
+  </main>
+
+  <footer>
+    Generated 2026-04-06 &middot;
+    <a href="https://github.com/dwillis/congress-press">Congress Press</a>
+  </footer>
+</body>
+</html>

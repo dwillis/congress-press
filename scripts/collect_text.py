@@ -111,6 +111,53 @@ def extract_date_from_html(html):
     return None, False
 
 
+def extract_text_bs4(html):
+    """Fallback text extraction using BeautifulSoup.
+
+    Tries common content selectors used by congressional websites, then
+    falls back to the <body> tag with nav/header/footer stripped out.
+    Returns stripped text or None.
+    """
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Try selectors common on congressional sites, most specific first
+    for selector in [
+        ".press-release__body",
+        ".press-release-content",
+        ".newsie_details_body",
+        "article .field--text",
+        "article .entry-content",
+        "article",
+        '[role="main"]',
+        "main",
+        "#content",
+        ".content",
+    ]:
+        el = soup.select_one(selector)
+        if el:
+            # Remove nested nav/aside elements
+            for tag in el.find_all(["nav", "aside", "script", "style"]):
+                tag.decompose()
+            text = el.get_text(separator="\n", strip=True)
+            if len(text) >= 50:
+                return text
+
+    # Last resort: strip boilerplate from <body>
+    body = soup.find("body")
+    if body:
+        for tag in body.find_all(
+            ["nav", "header", "footer", "aside", "script", "style", "noscript"]
+        ):
+            tag.decompose()
+        text = body.get_text(separator="\n", strip=True)
+        if len(text) >= 50:
+            return text
+
+    return None
+
+
 def fetch_article(url):
     """Fetch and parse an article, returning (text, publish_date, date_partial, error).
 
@@ -124,6 +171,10 @@ def fetch_article(url):
         article.download()
         article.parse()
         text = article.text.strip() if article.text else None
+
+        # Fallback: if newspaper4k found nothing, try BeautifulSoup extraction
+        if not text and article.html:
+            text = extract_text_bs4(article.html)
 
         # Try extracting date from raw HTML first (more reliable)
         pub_date = None
@@ -205,12 +256,16 @@ def process_file(path, retry_failures=False, limit=0, member_id=None):
 
             if error:
                 failed_count += 1
+                print(f"    FAIL {url[:80]} — {error[:120]}")
                 continue
 
             if text:
                 record["text"] = text
                 record["updated_at"] = timestamp
                 fetched_count += 1
+            else:
+                failed_count += 1
+                print(f"    EMPTY {url[:80]}")
 
             # Date backfill: fill in missing or future (bad) dates
             if pub_date and not is_future_date(pub_date):

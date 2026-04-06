@@ -411,6 +411,7 @@ def generate_html(years):
     <h1>Congress <span>Press</span></h1>
     <p>An archive of congressional press releases from {year_range}, with daily updates.</p>
     <div class="header-links">
+      <a href="dashboard.html">Data Dashboard</a>
       <a href="https://github.com/dwillis/congress-press">GitHub Repository</a>
       <a href="https://github.com/dwillis/python-statement">python-statement Scrapers</a>
     </div>
