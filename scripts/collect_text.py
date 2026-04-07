@@ -361,7 +361,7 @@ def main():
             print(f"No data directory for {args.year}")
             sys.exit(1)
         files = sorted(year_dir.glob("*.jsonl"))
-    elif args.all_files:
+    elif args.all_files or args.member_id:
         files = sorted(DATA_DIR.rglob("*.jsonl"))
     else:
         files = [current_month_path()]
