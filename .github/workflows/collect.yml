@@ -35,7 +35,7 @@ jobs:
         run: curl -fsSL https://raw.githubusercontent.com/dwillis/python-statement/main/legislators_with_scrapers.json -o legislators_with_scrapers.json
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --refresh-package python-statement
 
       - name: Phase 1 - Collect metadata
         if: ${{ github.event.inputs.phase != 'text-only' && github.event.inputs.phase != 'retry-failures' }}
