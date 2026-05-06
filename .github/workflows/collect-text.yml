@@ -21,7 +21,7 @@ jobs:
           version: "latest"
 
       - name: Install dependencies
-        run: uv sync
+        run: uv lock --upgrade-package python-statement && uv sync
 
       - name: Fetch text for current month
         run: cd scripts && uv run python collect_text.py
