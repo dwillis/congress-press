@@ -56,6 +56,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
           git add data/
           if git diff --staged --quiet; then
             echo "No changes to commit"
@@ -63,7 +64,5 @@ jobs:
             DATE=$(date +%Y-%m-%d)
             NEW=$(git diff --staged --numstat data/ | awk '{s+=$1} END {print s+0}')
             git commit -m "Update press releases ${DATE} (+${NEW} lines)"
-            git config pull.rebase false
-            git pull
             git push
           fi
