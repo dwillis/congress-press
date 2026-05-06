@@ -63,5 +63,6 @@ jobs:
             DATE=$(date +%Y-%m-%d)
             NEW=$(git diff --staged --numstat data/ | awk '{s+=$1} END {print s+0}')
             git commit -m "Update press releases ${DATE} (+${NEW} lines)"
+            git pull
             git push
           fi
