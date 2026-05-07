@@ -56,9 +56,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add uv.lock
-          git pull --rebase origin main
-          git add data/
+          git stash
+          git pull origin main
+          git stash pop
+          git add uv.lock data/
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
