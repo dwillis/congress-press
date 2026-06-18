@@ -465,7 +465,7 @@ wheels = [
 [[package]]
 name = "python-statement"
 version = "0.1.0"
-source = { git = "https://github.com/dwillis/python-statement.git#ad5aee8f55d2a4f2d109413a1e8ce344c7bc4ad0" }
+source = { git = "https://github.com/dwillis/python-statement.git#84fc0d61365fbfa005be86bfc17da86749486bc6" }
 dependencies = [
     { name = "bs4" },
     { name = "lxml" },
