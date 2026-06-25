@@ -1,0 +1,78 @@
+title: Congress Press Search
+description_html: |-
+  Full-text search across <strong>congressional press releases</strong> (2001&ndash;present),
+  collected daily from members' official websites. Filter by party, chamber, state, member, and date.
+license: MIT
+license_url: https://github.com/dwillis/congress-press/blob/main/LICENSE
+source: dwillis/congress-press
+source_url: https://github.com/dwillis/congress-press
+
+databases:
+  press:
+    tables:
+      releases:
+        title: Press releases
+        description: One row per release. Full-text search runs over title + body text.
+        sort_desc: date
+        facets:
+          - party
+          - chamber
+          - state
+          - year
+        fts_table: releases_fts
+        label_column: title
+        columns:
+          url: Link to the original release on the member's official site
+          text: Extracted body text (may be empty if the page could not be fetched)
+          has_text: 1 if body text was successfully extracted
+          date_source: How the publication date was determined
+          bioguide_id: Bioguide ID of the member
+        # Keep the giant body column out of the default table view; it's still searched.
+        hidden: false
+
+    queries:
+      term_frequency_by_party:
+        title: Term frequency by party & chamber over time
+        description_html: |-
+          Daily counts of releases matching a full-text <code>term</code> since a
+          start date, broken out by party and chamber &mdash; the SQL version of
+          <code>scripts/national_debt_mentions.py</code>.
+          Try term <code>"national debt"</code> or <code>immigration</code>.
+        sql: |-
+          select
+            r.date as date,
+            sum(r.party = 'Democrat'   and r.chamber = 'House')  as dem_house,
+            sum(r.party = 'Democrat'   and r.chamber = 'Senate') as dem_senate,
+            sum(r.party = 'Republican' and r.chamber = 'House')  as rep_house,
+            sum(r.party = 'Republican' and r.chamber = 'Senate') as rep_senate,
+            count(*) as total
+          from releases r
+          join releases_fts f on r.rowid = f.rowid
+          where releases_fts match :term
+            and r.date is not null
+            and r.date >= :since
+          group by r.date
+          order by r.date
+        params:
+          - term
+          - since
+
+      most_active_members:
+        title: Most active members matching a term
+        description_html: Members ranked by number of releases matching a full-text <code>term</code>.
+        sql: |-
+          select
+            r.member_name, r.party, r.state, r.chamber,
+            count(*) as releases,
+            min(r.date) as first, max(r.date) as last
+          from releases r
+          join releases_fts f on r.rowid = f.rowid
+          where releases_fts match :term
+          group by r.bioguide_id
+          order by releases desc
+          limit 100
+        params:
+          - term
+
+plugins:
+  datasette-json-html: {}

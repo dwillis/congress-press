@@ -31,6 +31,37 @@ jobs:
       - name: Build site
         run: python scripts/build_site.py
 
+      # --- Search index: build press.db and publish to Hugging Face ---
+      - name: Install search-index deps
+        run: pip install "sqlite-utils>=3.36" "huggingface_hub>=0.23"
+
+      - name: Fetch previous search index (for incremental build)
+        continue-on-error: true  # first run has none; full build will run instead
+        env:
+          HF_DATASET: dpwillis/congress-press-db
+        run: |
+          python - <<'PY'
+          import os
+          from huggingface_hub import hf_hub_download
+          hf_hub_download(
+              repo_id=os.environ["HF_DATASET"], filename="press.db",
+              repo_type="dataset", local_dir=".",
+          )
+          print("Fetched previous press.db")
+          PY
+
+      - name: Build search index
+        continue-on-error: true
+        run: python scripts/build_search_db.py
+
+      - name: Publish search index to Hugging Face
+        continue-on-error: true
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_DATASET: dpwillis/congress-press-db
+          HF_SPACE: dpwillis/congress-press-search
+        run: python scripts/publish_search_db.py
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

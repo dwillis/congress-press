@@ -7,6 +7,7 @@ dependencies = [
     "python-statement @ git+https://github.com/dwillis/python-statement.git",
     "newspaper4k[nlp]>=0.9.3",
     "requests>=2.28.0",
+    "sqlite-utils>=3.36",
 ]
 
 [tool.hatch.metadata]

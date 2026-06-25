@@ -439,6 +439,7 @@ def generate_html(year_stats, month_stats, member_stats, party_totals, chamber_t
     <h1>Congress <span>Press</span> Dashboard</h1>
     <p>Data completeness and activity overview</p>
     <div class="header-links">
+      <a href="https://huggingface.co/spaces/dpwillis/congress-press-search">Search</a>
       <a href="index.html">Downloads</a>
       <a href="https://github.com/dwillis/congress-press">GitHub</a>
     </div>
