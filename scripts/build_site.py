@@ -5,13 +5,13 @@ Usage:
     uv run python scripts/build_site.py
 """
 
-import os
+import json
 import shutil
 import zipfile
 from datetime import date
 from pathlib import Path
 
-from utils import DATA_DIR
+from utils import COMMITTEE_DIR, DATA_DIR
 
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 DOWNLOADS_DIR = DOCS_DIR / "downloads"
@@ -44,15 +44,37 @@ def count_records(path):
     return count
 
 
-def build_downloads():
-    """Create zip files for past years, copy current year files. Returns metadata."""
-    if DOWNLOADS_DIR.exists():
+def count_committees(root):
+    """Count distinct committees (thomas_id) with releases in the committee tree."""
+    ids = set()
+    for path in root.rglob("*.jsonl"):
+        with open(path) as f:
+            for line in f:
+                if line.strip():
+                    committee = json.loads(line).get("committee") or {}
+                    if committee.get("thomas_id"):
+                        ids.add(committee["thomas_id"])
+    return len(ids)
+
+
+def build_downloads(root=DATA_DIR, subdir=""):
+    """Create zip files for past years, copy current year files. Returns metadata.
+
+    Member releases go to docs/downloads/; committee releases (root=COMMITTEE_DIR,
+    subdir="committees") go to docs/downloads/committees/. The `href` on each year
+    and month is relative to docs/.
+    """
+    dest = DOWNLOADS_DIR / subdir if subdir else DOWNLOADS_DIR
+    if not subdir and DOWNLOADS_DIR.exists():
         shutil.rmtree(DOWNLOADS_DIR)
-    DOWNLOADS_DIR.mkdir(parents=True)
+    dest.mkdir(parents=True, exist_ok=True)
+    href_base = f"downloads/{subdir}/" if subdir else "downloads/"
 
     years = {}
+    if not root.exists():
+        return years
 
-    for year_dir in sorted(DATA_DIR.iterdir()):
+    for year_dir in sorted(root.iterdir()):
         if not year_dir.is_dir() or not year_dir.name.isdigit():
             continue
 
@@ -72,13 +94,14 @@ def build_downloads():
                 "month_num": month_num,
                 "month_name": MONTH_NAMES.get(month_num, month_num),
                 "filename": f.name,
+                "href": href_base + f.name,
                 "records": rec_count,
             })
 
         if year == CURRENT_YEAR:
             # Copy individual monthly files for current year
             for f in jsonl_files:
-                shutil.copy2(f, DOWNLOADS_DIR / f.name)
+                shutil.copy2(f, dest / f.name)
 
             years[year] = {
                 "type": "current",
@@ -88,12 +111,12 @@ def build_downloads():
 
             # Also add file sizes after copy
             for m in months:
-                fpath = DOWNLOADS_DIR / m["filename"]
+                fpath = dest / m["filename"]
                 m["size"] = human_size(fpath.stat().st_size)
         else:
             # Create zip for past years
-            zip_name = f"{year}.zip"
-            zip_path = DOWNLOADS_DIR / zip_name
+            zip_name = f"{subdir}-{year}.zip" if subdir else f"{year}.zip"
+            zip_path = dest / zip_name
 
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for f in jsonl_files:
@@ -102,6 +125,7 @@ def build_downloads():
             years[year] = {
                 "type": "archive",
                 "zip_name": zip_name,
+                "href": href_base + zip_name,
                 "zip_size": human_size(zip_path.stat().st_size),
                 "months": months,
                 "total_records": total_records,
@@ -110,12 +134,8 @@ def build_downloads():
     return years
 
 
-def generate_html(years):
-    """Generate the index.html page."""
-    total_records = sum(y["total_records"] for y in years.values())
-    total_members = 860  # approximate, from README
-    year_range = f"{min(years.keys())}-{max(years.keys())}"
-
+def render_year_sections(years):
+    """Render one <details> block per year, newest first."""
     year_sections = []
     for year in sorted(years.keys(), reverse=True):
         info = years[year]
@@ -130,7 +150,7 @@ def generate_html(years):
                     f'<td>{m["month_name"]}</td>'
                     f'<td class="num">{m["records"]:,}</td>'
                     f'<td class="num">{m["size"]}</td>'
-                    f'<td><a href="downloads/{m["filename"]}" class="dl-link">Download JSONL</a></td>'
+                    f'<td><a href="{m["href"]}" class="dl-link">Download JSONL</a></td>'
                     f'</tr>'
                 )
             content = f"""        <table>
@@ -142,7 +162,7 @@ def generate_html(years):
         else:
             month_list = ", ".join(m["month_name"] for m in info["months"])
             content = f"""        <div class="archive-row">
-          <a href="downloads/{info['zip_name']}" class="dl-link dl-zip">Download {year}.zip</a>
+          <a href="{info['href']}" class="dl-link dl-zip">Download {info['zip_name']}</a>
           <span class="meta">{info['zip_size']} &middot; {info['total_records']:,} records</span>
         </div>
         <p class="months-covered">{month_list}</p>"""
@@ -154,6 +174,27 @@ def generate_html(years):
         </summary>
 {content}
       </details>""")
+    return year_sections
+
+
+def generate_html(years, committee_years, committee_count):
+    """Generate the index.html page."""
+    total_records = sum(y["total_records"] for y in years.values())
+    committee_records = sum(y["total_records"] for y in committee_years.values())
+    total_members = 860  # approximate, from README
+    year_range = f"{min(years.keys())}-{max(years.keys())}"
+
+    year_sections = render_year_sections(years)
+    committee_html = ""
+    if committee_years:
+        committee_html = f"""
+    <h2>Committee Releases</h2>
+    <p class="section-note">{committee_records:,} releases from {committee_count} House, Senate and joint
+    committees, covering both majority and minority press pages. Same record format, with <code>member: null</code> and a
+    <code>committee</code> object (thomas_id, name, chamber, side, party).</p>
+
+{chr(10).join(render_year_sections(committee_years))}
+"""
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -267,6 +308,16 @@ def generate_html(years):
       padding-bottom: 0.5rem;
       border-bottom: 2px solid var(--gold);
     }}
+
+    details + h2 {{ margin-top: 2.5rem; }}
+
+    .section-note {{
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 1rem;
+    }}
+
+    .section-note code {{ font-size: 0.85em; }}
 
     details {{
       border: 1px solid var(--border);
@@ -428,6 +479,10 @@ def generate_html(years):
       <div class="stat-label">Members of Congress</div>
     </div>
     <div class="stat">
+      <div class="stat-value">{committee_count}</div>
+      <div class="stat-label">Committees</div>
+    </div>
+    <div class="stat">
       <div class="stat-value">{len(years)}</div>
       <div class="stat-label">Years of Data</div>
     </div>
@@ -437,7 +492,7 @@ def generate_html(years):
     <h2>Downloads</h2>
 
 {chr(10).join(year_sections)}
-
+{committee_html}
   </main>
 
   <footer>
@@ -455,13 +510,16 @@ def main():
     print("Building site...")
     years = build_downloads()
     print(f"  Processed {len(years)} years")
+    committee_years = build_downloads(COMMITTEE_DIR, "committees")
+    committee_count = count_committees(COMMITTEE_DIR)
+    print(f"  Processed {len(committee_years)} committee years ({committee_count} committees)")
 
-    html = generate_html(years)
+    html = generate_html(years, committee_years, committee_count)
     index_path = DOCS_DIR / "index.html"
     index_path.write_text(html)
     print(f"  Wrote {index_path}")
 
-    total_downloads = len(list(DOWNLOADS_DIR.iterdir()))
+    total_downloads = sum(1 for p in DOWNLOADS_DIR.rglob("*") if p.is_file())
     print(f"  {total_downloads} download files in {DOWNLOADS_DIR}")
     print("Done.")
 

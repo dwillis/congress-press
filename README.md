@@ -6,6 +6,8 @@ A collection of more than 670,000 congressional press releases from 2001 to the 
 
 The dataset contains press releases from over 860 members of Congress across both chambers. Data is stored as JSONL files organized by month in `data/YYYY/YYYY-MM.jsonl`.
 
+Committee press releases from House, Senate and joint committee websites (majority and minority pages, or one shared site) are a separate collection in `data/committees/YYYY/YYYY-MM.jsonl`. See [Committee releases](#committee-releases).
+
 Records come from two sources:
 
 - **Legacy import** (2001-2020) - ~486,000 press releases with full text from the ProPublica Congress API
@@ -17,7 +19,7 @@ Records come from two sources:
 
 A GitHub Actions workflow runs daily at 5am UTC in two phases:
 
-1. **Metadata collection** - Scrapes press release listings (title, URL, date) from 536 congressional websites
+1. **Metadata collection** - Scrapes press release listings (title, URL, date) from 536 member websites and 84 committee press pages
 2. **Text extraction** - Fetches full article text using newspaper4k for new/changed releases, and backfills dates from individual page HTML when the listing page doesn't include the year
 
 ## Record format
@@ -48,6 +50,36 @@ Each line in a JSONL file is one press release:
 
 The `date_source` field indicates where the date came from: `scraper` (listing page), `page_html` (extracted from the individual release page), `legacy` (historical import), or `newspaper4k` (article metadata).
 
+## Committee releases
+
+Committee records use the same format, with `member: null` and a `committee` object:
+
+```json
+{
+  "url": "https://www.rules.senate.gov/news/minority-news/...",
+  "scraper": "ssra_minority",
+  "member": null,
+  "committee": {
+    "thomas_id": "SSRA",
+    "name": "Senate Committee on Rules and Administration",
+    "chamber": "Senate",
+    "side": "majority",
+    "party": "Democrat",
+    "party_basis": "label"
+  },
+  "...": "other fields as above"
+}
+```
+
+`thomas_id` matches [`committees-current.yaml`](https://github.com/unitedstates/congress-legislators/blob/main/committees-current.yaml). `chamber` is `House`, `Senate` or `Joint`.
+
+`side` and `party` describe the release on its own date, not the page it was found on. A committee press page's archive moves with the party staff who run it. When control flips, Senate sites swap which party sits under their majority/minority pages, and House archives move between the main committee domain and the `democrats-`/`republicans-` subdomains. So, for example, Chairwoman Klobuchar's 2021 releases now sit on the Rules Committee's *minority* page. Each record gets:
+
+- `party`: the party the press page belonged to when it was scraped. That's read from the URL when it names a party (`party_basis: "site"`), otherwise from its majority/minority label and chamber control on the collection date (`party_basis: "label"`).
+- `side`: `majority` if that party controlled the chamber on the release date, otherwise `minority`. Shared committee sites are `full` with `party: null`. Joint committees keep the press page's current majority/minority label.
+
+Chamber control by date lives in `CHAMBER_CONTROL` in `scripts/utils.py`. It needs an entry for each new Congress. Corrections for individual press pages go in `PARTY_OVERRIDES`.
+
 ## Caveats
 
 - **Missing text**: Some records have `"text": null` because the original page has been removed (404) or is behind JavaScript rendering. These records still have valid metadata (title, date, member).
@@ -72,6 +104,11 @@ uv run python scripts/backfill.py                    # All scrapers, all pages
 uv run python scripts/backfill.py --scraper pelosi   # Single scraper
 uv run python scripts/backfill.py --max-pages 10     # Limit pagination depth
 uv run python scripts/backfill.py --resume            # Skip scrapers already in data
+
+# Committees (written to data/committees/; pages up to 500 deep by default)
+uv run python scripts/backfill.py --collection committees --workers 4
+uv run python scripts/backfill.py --collection committees --committee HSAG
+uv run python scripts/collect_text.py --all-files --committees
 ```
 
 ## Contributing

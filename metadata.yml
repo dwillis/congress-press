@@ -1,7 +1,8 @@
 title: Congress Press Search
 description_html: |-
   Full-text search across <strong>congressional press releases</strong> (2001&ndash;present),
-  collected daily from members' official websites. Filter by party, chamber, state, member, and date.
+  collected daily from members' and committees' official websites. Filter by party, chamber, state,
+  member, committee, and date.
 license: MIT
 license_url: https://github.com/dwillis/congress-press/blob/main/LICENSE
 source: dwillis/congress-press
@@ -12,13 +13,15 @@ databases:
     tables:
       releases:
         title: Press releases
-        description: One row per release. Full-text search runs over title + body text.
+        description: One row per release, from members (collection = member) or committees (collection = committee). Full-text search runs over title + body text.
         sort_desc: date
         facets:
+          - collection
           - party
           - chamber
           - state
           - year
+          - committee_name
         fts_table: releases_fts
         label_column: title
         columns:
@@ -27,6 +30,11 @@ databases:
           has_text: 1 if body text was successfully extracted
           date_source: How the publication date was determined
           bioguide_id: Bioguide ID of the member
+          collection: member or committee
+          committee_id: Committee thomas_id from committees-current.yaml (e.g. HSAG)
+          committee_name: Committee name
+          side: Committee control on the release date (majority, minority, or full for a shared committee site)
+          party: Member's party, or for committee releases the party of that committee site on the release date
         # Keep the giant body column out of the default table view; it's still searched.
         hidden: false
 
@@ -49,6 +57,7 @@ databases:
           from releases r
           join releases_fts f on r.rowid = f.rowid
           where releases_fts match :term
+            and r.collection = 'member'
             and r.date is not null
             and r.date >= :since
           group by r.date
@@ -68,7 +77,26 @@ databases:
           from releases r
           join releases_fts f on r.rowid = f.rowid
           where releases_fts match :term
+            and r.collection = 'member'
           group by r.bioguide_id
+          order by releases desc
+          limit 100
+        params:
+          - term
+
+      committee_activity:
+        title: Committee releases matching a term
+        description_html: Committees ranked by number of releases matching a full-text <code>term</code>, split by majority/minority control.
+        sql: |-
+          select
+            r.committee_name, r.committee_id, r.chamber, r.side, r.party,
+            count(*) as releases,
+            min(r.date) as first, max(r.date) as last
+          from releases r
+          join releases_fts f on r.rowid = f.rowid
+          where releases_fts match :term
+            and r.collection = 'committee'
+          group by r.committee_id, r.side, r.party
           order by releases desc
           limit 100
         params:
