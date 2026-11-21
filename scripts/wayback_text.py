@@ -20,13 +20,16 @@ import requests
 
 from collect_text import extract_date_from_html
 from utils import (
+    COMMITTEE_DIR,
     DATA_DIR,
+    collection_root,
     current_month_path,
     is_future_date,
     load_jsonl,
     month_path,
     now_iso,
     records_by_url,
+    refresh_committee,
     save_jsonl,
 )
 
@@ -213,14 +216,11 @@ def process_file(path, dry_run=False, limit=0):
 
             # Date backfill
             if pub_date and not is_future_date(pub_date):
-                if record.get("date") is None:
+                if record.get("date") is None or is_future_date(record.get("date")):
                     record["date"] = pub_date
                     record["date_source"] = "page_html"
                     date_backfill_count += 1
-                elif is_future_date(record.get("date")):
-                    record["date"] = pub_date
-                    record["date_source"] = "page_html"
-                    date_backfill_count += 1
+                    refresh_committee(record)
 
             if record.get("date") is None and date_partial:
                 record["date_partial"] = date_partial
@@ -230,13 +230,14 @@ def process_file(path, dry_run=False, limit=0):
         return found_count, 0, 0, not_archived_count, 0, 0, remaining_null
 
     # Relocate records to correct monthly files if dates changed
+    root = collection_root(path)  # keep committee records in the committee tree
     file_month = path.stem
     stay = []
     relocate = {}
     for r in records:
         record_month = r["date"][:7] if r.get("date") else None
         if record_month and record_month != file_month:
-            target = str(month_path(r["date"]))
+            target = str(month_path(r["date"], root=root))
             relocate.setdefault(target, []).append(r)
         else:
             stay.append(r)
@@ -305,7 +306,7 @@ def main():
     elif args.all_files:
         files = sorted(DATA_DIR.rglob("*.jsonl"))
     else:
-        files = [current_month_path()]
+        files = [p for p in (current_month_path(), current_month_path(COMMITTEE_DIR)) if p.exists()]
 
     # Filter by min-year if specified
     if args.min_year:

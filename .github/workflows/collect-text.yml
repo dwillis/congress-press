@@ -20,6 +20,9 @@ jobs:
         with:
           version: "latest"
 
+      - name: Fetch committees file
+        run: curl -fsSL https://raw.githubusercontent.com/dwillis/python-statement/main/committees_with_scrapers.json -o committees_with_scrapers.json
+
       - name: Install dependencies
         run: uv lock --upgrade-package python-statement && uv sync
 

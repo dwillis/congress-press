@@ -13,7 +13,7 @@ from collections import defaultdict
 from datetime import date
 from pathlib import Path
 
-from utils import DATA_DIR
+from utils import COMMITTEE_DIR, DATA_DIR
 
 DOCS_DIR = Path(__file__).resolve().parent.parent / "docs"
 CURRENT_YEAR = date.today().year
@@ -90,6 +90,81 @@ def scan_data():
     return year_stats, month_stats, member_stats, party_totals, chamber_totals
 
 
+def scan_committees():
+    """Stream data/committees/ and accumulate stats per committee press page.
+
+    Returns {(thomas_id, side): {name, chamber, side, total, has_text, first, last}}.
+    """
+    stats = {}
+    if not COMMITTEE_DIR.exists():
+        return stats
+    for jsonl_path in sorted(COMMITTEE_DIR.rglob("*.jsonl")):
+        with open(jsonl_path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                c = rec.get("committee") or {}
+                # Group by the scraper's configured press page, not the
+                # date-derived side, so one site stays one row.
+                key = (c.get("thomas_id"), rec.get("scraper"))
+                cs = stats.setdefault(key, {
+                    "name": c.get("name") or c.get("thomas_id") or "Unknown",
+                    "chamber": c.get("chamber") or "",
+                    "scraper": rec.get("scraper") or "",
+                    "total": 0, "has_text": 0, "first": None, "last": None,
+                })
+                cs["total"] += 1
+                if rec.get("text"):
+                    cs["has_text"] += 1
+                d = rec.get("date")
+                if d:
+                    cs["first"] = min(cs["first"] or d, d)
+                    cs["last"] = max(cs["last"] or d, d)
+    return stats
+
+
+def committee_section(committee_stats):
+    """HTML for the committee releases section ('' if there are none)."""
+    if not committee_stats:
+        return ""
+    rows = []
+    for (_tid, _scraper), cs in sorted(committee_stats.items(), key=lambda x: (x[1]["chamber"], x[1]["name"], x[1]["scraper"])):
+        pct = round(100 * cs["has_text"] / cs["total"], 1) if cs["total"] else 0
+        color = coverage_color(pct)
+        control = cs["scraper"].rsplit("_", 1)[-1] if "_" in cs["scraper"] else ""
+        rows.append(
+            f'<tr><td>{cs["name"]}</td>'
+            f'<td>{cs["chamber"]}</td>'
+            f'<td>{control}</td>'
+            f'<td class="num">{cs["total"]:,}</td>'
+            f'<td>{cs["first"] or ""}</td>'
+            f'<td>{cs["last"] or ""}</td>'
+            f'<td class="num" style="color:{color}">{pct}%</td></tr>'
+        )
+    total = sum(cs["total"] for cs in committee_stats.values())
+    committees = len({tid for tid, _ in committee_stats})
+    return f"""
+    <h2>Committee Releases</h2>
+    <p>{total:,} releases from {committees} committees, all years. Control is the
+    scraper's current label (majority, minority or full); each record's
+    <code>committee.side</code> and <code>committee.party</code> are set for its own date.</p>
+    <table>
+      <thead><tr>
+        <th>Committee</th><th>Chamber</th><th>Control</th><th>Releases</th>
+        <th>First</th><th>Latest</th><th>Text %</th>
+      </tr></thead>
+      <tbody>
+{chr(10).join(rows)}
+      </tbody>
+    </table>
+"""
+
+
 def coverage_color(pct):
     if pct >= 80:
         return "#2d8a4e"
@@ -103,7 +178,7 @@ def party_abbrev(party):
     return {"Democrat": "D", "Republican": "R", "Independent": "I"}.get(party, party)
 
 
-def generate_html(year_stats, month_stats, member_stats, party_totals, chamber_totals):
+def generate_html(year_stats, month_stats, member_stats, party_totals, chamber_totals, committee_stats=None):
     total_records = sum(y["total"] for y in year_stats.values())
     total_null_dates = sum(y["null_date"] for y in year_stats.values())
     total_text = sum(y["has_text"] for y in year_stats.values())
@@ -516,6 +591,7 @@ def generate_html(year_stats, month_stats, member_stats, party_totals, chamber_t
 {chr(10).join(active_rows)}
       </tbody>
     </table>
+{committee_section(committee_stats)}
   </main>
 
   <footer>
@@ -534,9 +610,11 @@ def main():
     total = sum(y["total"] for y in year_stats.values())
     print(f"  {total:,} records across {len(year_stats)} years")
     print(f"  {len(member_stats):,} members tracked (recent years)")
+    committee_stats = scan_committees()
+    print(f"  {len(committee_stats):,} committee press pages")
 
     print("Generating dashboard...")
-    html = generate_html(year_stats, month_stats, member_stats, party_totals, chamber_totals)
+    html = generate_html(year_stats, month_stats, member_stats, party_totals, chamber_totals, committee_stats)
     out_path = DOCS_DIR / "dashboard.html"
     out_path.write_text(html)
     print(f"  Wrote {out_path}")

@@ -3,6 +3,8 @@
 
 Produces a single `press.db` that Datasette can serve: full-text search over
 title + body text, plus facetable columns (party, chamber, state, member, year).
+Member releases (data/YYYY/) and committee releases (data/committees/YYYY/) share
+one `releases` table, told apart by the `collection` column.
 
 The JSONL files under data/ are the source of truth; this script derives a
 queryable index from them. It is incremental by default to keep daily CI cheap:
@@ -19,22 +21,38 @@ Usage:
 
 import argparse
 import json
+from itertools import chain
 from datetime import datetime, timezone
 from pathlib import Path
 
 import sqlite_utils
 
-from utils import DATA_DIR
+from utils import COMMITTEE_DIR, DATA_DIR
 
 DEFAULT_OUT = Path(__file__).resolve().parent.parent / "press.db"
 
-# Columns kept on the flat `releases` table (member.* is flattened in).
+# Columns kept on the flat `releases` table (member.* / committee.* are flattened in).
 FTS_COLUMNS = ["title", "text"]
+
+# Columns added after the table first shipped; ensure_schema adds them to an
+# existing press.db so CI can stay incremental.
+COMMITTEE_COLUMNS = {
+    "collection": str,
+    "committee_id": str,
+    "committee_name": str,
+    "side": str,
+}
+INDEXED_COLUMNS = [
+    "date", "year", "party", "chamber", "state", "bioguide_id", "has_text",
+    "collection", "committee_id", "side",
+]
 
 
 def transform(rec):
     """Flatten one JSONL record into a flat row dict for the releases table."""
     member = rec.get("member") or {}
+    committee = rec.get("committee") or {}
+    owner = committee or member
     date = rec.get("date") or None
     text = rec.get("text") or None
     return {
@@ -43,11 +61,15 @@ def transform(rec):
         "date": date,
         "year": date[:4] if date else None,
         "month": date[:7] if date else None,
-        "party": member.get("party"),
-        "chamber": member.get("chamber"),
+        "collection": "committee" if committee else "member",
+        "party": owner.get("party"),
+        "chamber": owner.get("chamber"),
         "state": member.get("state"),
         "member_name": member.get("name"),
         "bioguide_id": member.get("bioguide_id"),
+        "committee_id": committee.get("thomas_id"),
+        "committee_name": committee.get("name"),
+        "side": committee.get("side"),
         "domain": rec.get("domain"),
         "scraper": rec.get("scraper"),
         "source": rec.get("source"),
@@ -60,14 +82,17 @@ def transform(rec):
 
 
 def iter_month_files(years=None):
-    """Yield (year, jsonl_path) for every monthly file, optionally filtered."""
-    for year_dir in sorted(DATA_DIR.iterdir()):
-        if not year_dir.is_dir() or not year_dir.name.isdigit():
+    """Yield (year, jsonl_path) for every monthly file in both collections."""
+    for root in (DATA_DIR, COMMITTEE_DIR):
+        if not root.exists():
             continue
-        if years and year_dir.name not in years:
-            continue
-        for jsonl_path in sorted(year_dir.glob("*.jsonl")):
-            yield year_dir.name, jsonl_path
+        for year_dir in sorted(root.iterdir()):
+            if not year_dir.is_dir() or not year_dir.name.isdigit():
+                continue
+            if years and year_dir.name not in years:
+                continue
+            for jsonl_path in sorted(year_dir.glob("*.jsonl")):
+                yield year_dir.name, jsonl_path
 
 
 def iter_rows(paths, since=None):
@@ -93,9 +118,29 @@ def iter_rows(paths, since=None):
                 yield transform(rec)
 
 
+def migrate_schema(db):
+    """Add committee columns to a press.db built before they existed.
+
+    Every row already in such a db came from data/YYYY/, so it's a member release.
+    """
+    table = db["releases"]
+    missing = {c: t for c, t in COMMITTEE_COLUMNS.items() if c not in table.columns_dict}
+    if not missing:
+        return
+    print(f"Migrating schema: adding {', '.join(missing)}")
+    for col, col_type in missing.items():
+        table.add_column(col, col_type)
+    if "collection" in missing:
+        db.execute("update releases set collection = 'member'")
+    for col in INDEXED_COLUMNS:
+        table.create_index([col], if_not_exists=True)
+    db.conn.commit()
+
+
 def ensure_schema(db):
-    """Create the releases table, indexes, and FTS once."""
+    """Create the releases table, indexes, and FTS once; migrate older dbs."""
     if db["releases"].exists():
+        migrate_schema(db)
         return
     db["releases"].create(
         {
@@ -104,11 +149,15 @@ def ensure_schema(db):
             "date": str,
             "year": str,
             "month": str,
+            "collection": str,
             "party": str,
             "chamber": str,
             "state": str,
             "member_name": str,
             "bioguide_id": str,
+            "committee_id": str,
+            "committee_name": str,
+            "side": str,
             "domain": str,
             "scraper": str,
             "source": str,
@@ -120,7 +169,7 @@ def ensure_schema(db):
         },
         pk="url",
     )
-    for col in ["date", "year", "party", "chamber", "state", "bioguide_id", "has_text"]:
+    for col in INDEXED_COLUMNS:
         db["releases"].create_index([col], if_not_exists=True)
     # External-content FTS5: indexes title+text without duplicating the body.
     db["releases"].enable_fts(
@@ -184,7 +233,24 @@ def main():
     print(f"Build mode: {mode}")
     print(f"  candidate files: {len(candidates)}")
 
-    rows = iter_rows(candidates, since=last_build)
+    # Until the index holds committee rows, read committee files in full: a
+    # backfill committed after the last build carries updated_at stamps older
+    # than that build and would otherwise be skipped for good.
+    committee_since = last_build
+    if last_build and not db.execute(
+        "select 1 from releases where collection = 'committee' limit 1"
+    ).fetchone():
+        committee_since = None
+    committee_tree = COMMITTEE_DIR.resolve()
+    member_paths = [p for p in candidates if not p.resolve().is_relative_to(committee_tree)]
+    committee_paths = [p for p in candidates if p.resolve().is_relative_to(committee_tree)]
+    print(f"  committee files: {len(committee_paths)}"
+          + (" (read in full)" if committee_paths and committee_since is None and last_build else ""))
+
+    rows = chain(
+        iter_rows(member_paths, since=last_build),
+        iter_rows(committee_paths, since=committee_since),
+    )
     db["releases"].upsert_all(rows, pk="url", batch_size=2000, analyze=True)
 
     set_last_build(db, build_started)

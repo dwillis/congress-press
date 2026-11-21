@@ -10,6 +10,7 @@ Usage:
     uv run python scripts/collect_text.py --all-files        # All files with null text
     uv run python scripts/collect_text.py --file data/2023/2023-06.jsonl
     uv run python scripts/collect_text.py --retry-failures   # Re-attempt null-text records
+    uv run python scripts/collect_text.py --all-files --committees  # Committee tree only
 """
 
 import argparse
@@ -21,13 +22,16 @@ from datetime import date, datetime
 from pathlib import Path
 
 from utils import (
+    COMMITTEE_DIR,
     DATA_DIR,
+    collection_root,
     current_month_path,
     is_future_date,
     load_jsonl,
     month_path,
     now_iso,
     records_by_url,
+    refresh_committee,
     save_jsonl,
 )
 
@@ -269,27 +273,25 @@ def process_file(path, retry_failures=False, limit=0, member_id=None):
 
             # Date backfill: fill in missing or future (bad) dates
             if pub_date and not is_future_date(pub_date):
-                if record.get("date") is None:
+                if record.get("date") is None or is_future_date(record.get("date")):
                     record["date"] = pub_date
                     record["date_source"] = "page_html"
                     date_backfill_count += 1
-                elif is_future_date(record.get("date")):
-                    record["date"] = pub_date
-                    record["date_source"] = "page_html"
-                    date_backfill_count += 1
+                    refresh_committee(record)
 
             # Store partial date (month-day) when no full date is available
             if record.get("date") is None and date_partial:
                 record["date_partial"] = date_partial
 
     # Separate records that need to move to a different monthly file
+    root = collection_root(path)  # keep committee records in the committee tree
     file_month = path.stem  # e.g. "2026-03"
     stay = []
     relocate = {}  # {target_path: [records]}
     for r in records:
         record_month = r["date"][:7] if r.get("date") else None
         if record_month and record_month != file_month:
-            target = str(month_path(r["date"]))
+            target = str(month_path(r["date"], root=root))
             relocate.setdefault(target, []).append(r)
         else:
             stay.append(r)
@@ -350,21 +352,29 @@ def main():
         type=str,
         help="Process all files for a specific year (e.g., 2023)",
     )
+    parser.add_argument(
+        "--committees",
+        action="store_true",
+        help="With --year or --all-files, process the committee tree (data/committees/) instead",
+    )
     args = parser.parse_args()
+    root = COMMITTEE_DIR if args.committees else DATA_DIR
 
     # Determine which files to process
     if args.file:
         files = [Path(args.file)]
     elif args.year:
-        year_dir = DATA_DIR / args.year
+        year_dir = root / args.year
         if not year_dir.exists():
             print(f"No data directory for {args.year}")
             sys.exit(1)
         files = sorted(year_dir.glob("*.jsonl"))
+    elif args.committees and args.all_files:
+        files = sorted(COMMITTEE_DIR.rglob("*.jsonl"))
     elif args.all_files or args.member_id:
         files = sorted(DATA_DIR.rglob("*.jsonl"))
     else:
-        files = [current_month_path()]
+        files = [p for p in (current_month_path(), current_month_path(COMMITTEE_DIR)) if p.exists()]
 
     # Filter to files that actually have records needing text
     files_to_process = []
